@@ -203,7 +203,8 @@ def main():
 
             if st.session_state.get('last_loaded_project') != project_file.name:
                 for k, v in loaded_state.items():
-                    st.session_state[k] = v
+                    if not k.startswith("del_mq_") and not k.startswith("edit_mq_"):
+                        st.session_state[k] = v
                 st.session_state['last_loaded_project'] = project_file.name
                 st.rerun()
 
@@ -226,6 +227,7 @@ def main():
                 if 'blank' in original_name.lower():
                     blank_filename = display_name
 
+    if data_dict:
         q_min_global = float('inf')
         q_max_global = float('-inf')
         blank_df = None
@@ -938,7 +940,9 @@ def main():
                              and not k.startswith("down_")
                              and not k.startswith("btn_")
                              and not k.startswith("pkf_")
-                             and not k.startswith("mult_")}
+                             and not k.startswith("mult_")
+                             and not k.startswith("del_mq_")
+                             and not k.startswith("edit_mq_")}
 
             project_data = {
                 'data_dict': data_dict,
