@@ -83,10 +83,10 @@ def detect_morphology(ratios):
 
     tolerance = 0.05
     models = {
-        "ラメラ (Lamellar)": [1, 2, 3, 4, 5, 6, 7, 8],
-        "ヘキサゴナルシリンダー (Cylinder)": [1, np.sqrt(3), np.sqrt(4), np.sqrt(7), np.sqrt(9), np.sqrt(12), np.sqrt(13)],
-        "BCC球 (Spheres)": [1, np.sqrt(2), np.sqrt(3), np.sqrt(4), np.sqrt(5), np.sqrt(6), np.sqrt(7), np.sqrt(8)],
-        "ジャイロイド (Gyroid)": [1, np.sqrt(4/3), np.sqrt(7/3), np.sqrt(8/3), np.sqrt(10/3), np.sqrt(11/3)]
+        "ラメラ (Lamellar)": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        "ヘキサゴナルシリンダー (Cylinder)": [np.sqrt(n) for n in [1, 3, 4, 7, 9, 12, 13, 16, 19, 21, 25, 27, 28, 31, 36, 37, 39, 43, 48, 49, 52, 57, 61, 63, 64, 67, 73, 75, 76, 79, 81, 84, 91, 93, 97, 100]],
+        "BCC球 (Spheres)": [np.sqrt(n) for n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 56, 57, 58, 59, 61, 62, 64]],
+        "ジャイロイド (Gyroid)": [np.sqrt(n/6) for n in [6, 8, 14, 16, 20, 22, 24, 26, 30, 32, 38, 40, 42, 46, 48, 50, 54, 56, 62, 64, 66, 68, 70, 72, 74, 78, 80, 86, 88, 94, 96, 98, 102, 104, 110, 112, 114, 116, 118, 120, 126, 128, 134, 136, 142, 144, 150]]
     }
 
     best_match = "Disorder"
@@ -107,11 +107,15 @@ def detect_morphology(ratios):
 def get_closest_theoretical_ratio(ratio, tolerance=0.05):
     known_ratios = [
         (1.0, "1.000 (1)"),
-        (2.0, "2.000 (2, √4)"),
+        (2.0, "2.000 (2, √4, √(12/3))"),
         (3.0, "3.000 (3, √9)"),
         (4.0, "4.000 (4, √16)"),
         (5.0, "5.000 (5, √25)"),
         (6.0, "6.000 (6, √36)"),
+        (7.0, "7.000 (7, √49)"),
+        (8.0, "8.000 (8, √64)"),
+        (9.0, "9.000 (9, √81)"),
+        (10.0, "10.000 (10, √100)"),
         (np.sqrt(2), "1.414 (√2)"),
         (np.sqrt(3), "1.732 (√3)"),
         (np.sqrt(5), "2.236 (√5)"),
@@ -121,11 +125,38 @@ def get_closest_theoretical_ratio(ratio, tolerance=0.05):
         (np.sqrt(10), "3.162 (√10)"),
         (np.sqrt(11), "3.317 (√11)"),
         (np.sqrt(12), "3.464 (√12)"),
+        (np.sqrt(13), "3.606 (√13)"),
+        (np.sqrt(14), "3.742 (√14)"),
+        (np.sqrt(15), "3.873 (√15)"),
+        (np.sqrt(17), "4.123 (√17)"),
+        (np.sqrt(18), "4.243 (√18)"),
+        (np.sqrt(19), "4.359 (√19)"),
+        (np.sqrt(20), "4.472 (√20)"),
+        (np.sqrt(21), "4.583 (√21)"),
+        (np.sqrt(22), "4.690 (√22)"),
+        (np.sqrt(23), "4.796 (√23)"),
+        (np.sqrt(24), "4.899 (√24)"),
+        (np.sqrt(26), "5.099 (√26)"),
+        (np.sqrt(27), "5.196 (√27)"),
+        (np.sqrt(28), "5.292 (√28)"),
+        (np.sqrt(29), "5.385 (√29)"),
+        (np.sqrt(30), "5.477 (√30)"),
+        (np.sqrt(31), "5.568 (√31)"),
         (np.sqrt(4/3), "1.155 (√(4/3))"),
         (np.sqrt(7/3), "1.528 (√(7/3))"),
         (np.sqrt(8/3), "1.633 (√(8/3))"),
         (np.sqrt(10/3), "1.826 (√(10/3))"),
         (np.sqrt(11/3), "1.915 (√(11/3))"),
+        (np.sqrt(13/3), "2.082 (√(13/3))"),
+        (np.sqrt(14/3), "2.160 (√(14/3))"),
+        (np.sqrt(16/3), "2.309 (√(16/3))"),
+        (np.sqrt(17/3), "2.380 (√(17/3))"),
+        (np.sqrt(19/3), "2.517 (√(19/3))"),
+        (np.sqrt(20/3), "2.582 (√(20/3))"),
+        (np.sqrt(22/3), "2.708 (√(22/3))"),
+        (np.sqrt(23/3), "2.769 (√(23/3))"),
+        (np.sqrt(25/3), "2.887 (√(25/3))"),
+        (np.sqrt(26/3), "2.944 (√(26/3))"),
     ]
     best_match_str = "-"
     min_diff = float('inf')
@@ -243,7 +274,10 @@ def main():
             if cur_qmax > q_max_global: q_max_global = cur_qmax
 
         if q_min_global == float('inf'): q_min_global = 0.0
+        else: q_min_global = np.floor(q_min_global)
+
         if q_max_global == float('-inf'): q_max_global = 10.0
+        else: q_max_global = np.ceil(q_max_global)
 
         st.sidebar.markdown("---")
         st.sidebar.header("バックグラウンド(Blank)設定")
@@ -256,6 +290,13 @@ def main():
 
         st.sidebar.markdown("---")
         st.sidebar.header("範囲指定 (X軸 q)")
+
+        current_files_key = ",".join(sorted(data_dict.keys()))
+        if st.session_state.get("last_loaded_files") != current_files_key:
+            st.session_state.last_loaded_files = current_files_key
+            st.session_state.ui_q_min = float(q_min_global)
+            st.session_state.ui_q_max = float(q_max_global)
+            st.session_state.q_slider = (float(q_min_global), float(q_max_global))
 
         if "ui_q_min" not in st.session_state: st.session_state.ui_q_min = float(q_min_global)
         if "ui_q_max" not in st.session_state: st.session_state.ui_q_max = float(q_max_global)
@@ -270,9 +311,9 @@ def main():
 
         col_q_min, col_q_max = st.sidebar.columns(2)
         with col_q_min:
-            st.number_input("最小値", step=1.0, key="ui_q_min", on_change=sync_num)
+            st.number_input("最小値", step=1.0, key="ui_q_min", on_change=sync_num, format="%g")
         with col_q_max:
-            st.number_input("最大値", step=1.0, key="ui_q_max", on_change=sync_num)
+            st.number_input("最大値", step=1.0, key="ui_q_max", on_change=sync_num, format="%g")
 
         ui_q_min, ui_q_max = st.sidebar.slider(
             "スライダーで表示範囲を調整",
@@ -293,7 +334,17 @@ def main():
         normalize_data = st.sidebar.checkbox("各グラフの最大強度を 1.0 に規格化", value=True, help="データ全体での最大強度を基準に揃えます。(Tab 1・2共通)")
         plot_type = st.sidebar.radio("描画プロット", ["Semi-log (Y軸対数)", "Log-log (両対数)", "Linear (線形)"])
         show_legend_ui = st.sidebar.checkbox("グラフの凡例を表示する", value=True)
-        font_size = st.sidebar.slider("フォントサイズ", 10, 40, 18)
+        
+        st.sidebar.markdown("---")
+        st.sidebar.header("フォント設定")
+        col_f1, col_f2 = st.sidebar.columns(2)
+        with col_f1:
+            title_font_size = st.number_input("軸タイトル", min_value=10, max_value=50, value=24, step=1)
+        with col_f2:
+            tick_font_size = st.number_input("軸目盛り(数値)", min_value=10, max_value=50, value=18, step=1)
+        legend_font_size = st.number_input("凡例・その他", min_value=10, max_value=50, value=16, step=1)
+
+        st.sidebar.markdown("---")
         line_width = st.sidebar.slider("線の太さ", 1.0, 5.0, 2.0)
 
         st.sidebar.markdown("---")
@@ -303,6 +354,15 @@ def main():
             dtick_x = st.number_input("X軸", value=0.0, step=1.0, format="%.2f")
         with col_ty:
             dtick_y = st.number_input("Y軸 (線形のみ)", value=0.0, step=0.1, format="%.2f")
+
+        st.sidebar.markdown("---")
+        st.sidebar.header("画面上のグラフサイズ")
+        use_container_width = st.sidebar.checkbox("幅を画面に合わせる (自動リサイズ)", value=True, help="オフにすると指定した幅と高さ（縦横比）で固定表示されます。")
+        col_w, col_h = st.sidebar.columns(2)
+        with col_w:
+            graph_width = st.number_input("グラフ幅 (px)", value=800, step=50, disabled=use_container_width)
+        with col_h:
+            graph_height = st.number_input("グラフ高さ (px)", value=600, step=50)
 
         st.sidebar.markdown("---")
         st.sidebar.header("画像出力・保存設定")
@@ -381,30 +441,57 @@ def main():
                 o_marker_offset = st.slider("マーカー表示高さ(浮かせ幅)", 1.0, 30.0, 3.0, step=0.5, key="o_mof")
 
                 st.subheader("表示対象・個別設定")
+
+                if 'ordered_files_saxs' not in st.session_state or set(st.session_state.ordered_files_saxs) != set(file_names):
+                    st.session_state.ordered_files_saxs = file_names
+                
+                st.caption("ファイルの順番を「▲」「▼」で入れ替えられます。")
+
                 modifiers = {}
+                manual_y_offsets = {}
                 peak_flags = {}
                 display_names = {}
                 selected_files = []
+                custom_colors = {}
+                tab1_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
-                for name in file_names:
-                    col_chk, col_ren = st.columns([1, 2])
+                for idx, name in enumerate(st.session_state.ordered_files_saxs):
+                    col_chk, col_ren, col_btn1, col_btn2 = st.columns([4, 6, 2, 2])
                     with col_chk:
                         show_file = st.checkbox(f"表示", value=(name in default_selections), key=f"overlay_{name}")
                     with col_ren:
                         custom_n = st.text_input("系列名", value=name, key=f"ren_{name}", label_visibility="collapsed")
+                    with col_btn1:
+                        if idx > 0:
+                            if st.button("▲", key=f"up_{name}"):
+                                st.session_state.ordered_files_saxs[idx-1], st.session_state.ordered_files_saxs[idx] = st.session_state.ordered_files_saxs[idx], st.session_state.ordered_files_saxs[idx-1]
+                                st.rerun()
+                    with col_btn2:
+                        if idx < len(st.session_state.ordered_files_saxs) - 1:
+                            if st.button("▼", key=f"down_{name}"):
+                                st.session_state.ordered_files_saxs[idx+1], st.session_state.ordered_files_saxs[idx] = st.session_state.ordered_files_saxs[idx], st.session_state.ordered_files_saxs[idx+1]
+                                st.rerun()
+
+                    orig_idx = list(file_names).index(name)
+                    default_c = tab1_colors[orig_idx % len(tab1_colors)]
 
                     if show_file:
                         selected_files.append(name)
                         display_names[name] = custom_n
-                        col_m, col_p = st.columns([1, 1])
+                        col_m, col_y, col_p, col_c = st.columns([3, 3, 3, 2])
                         with col_m:
                             modifiers[name] = st.number_input("倍率", value=1.0, step=0.5, format="%.2f", key=f"mult_{name}")
+                        with col_y:
+                            manual_y_offsets[name] = st.number_input("個別Yシフト", value=0.0, step=0.5, format="%.2f", key=f"my_y_{name}")
                         with col_p:
+                            st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
                             peak_flags[name] = st.checkbox("ピーク", value=False, key=f"pkf_{name}")
+                        with col_c:
+                            st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
+                            custom_colors[name] = st.color_picker("色", value=default_c, key=f"color_{name}", label_visibility="collapsed")
 
             with col_right:
                 fig = go.Figure()
-                colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
                 y_min_g, y_max_g = float('inf'), float('-inf')
 
@@ -413,7 +500,12 @@ def main():
                     if df_full.empty: continue
 
                     x_offset = 0.0
-                    y_offset = stack_y * i
+                    my_y = manual_y_offsets.get(name, 0.0)
+                    
+                    # グラフ上で、リストの上にあるものほど上に表示されるように順序を反転
+                    # リストの先頭 (i=0) が最大の Yオフセット を持つように計算
+                    len_selected = len(selected_files)
+                    y_offset = (stack_y * (len_selected - 1 - i)) + my_y
 
                     df_full['q_nm'] = df_full['q_nm'] + x_offset
                     if is_log_y:
@@ -425,7 +517,7 @@ def main():
 
                     multiplier = modifiers.get(name, 1.0)
                     y_data_vis = df_vis['I'] * multiplier if not df_vis.empty else pd.Series(dtype=float)
-                    c = colors[i % len(colors)]
+                    c = custom_colors.get(name, '#000000')
 
                     if not y_data_vis.empty:
                         if y_data_vis.min() < y_min_g: y_min_g = y_data_vis.min()
@@ -476,13 +568,18 @@ def main():
                     if ui_q_min > 0 and ui_q_max > ui_q_min:
                         t_vals_x, t_text_x = get_log_ticks(ui_q_min, ui_q_max)
 
-                fig.update_layout(
+                layout_update = dict(
                     plot_bgcolor='white', paper_bgcolor='rgba(0,0,0,0)',
-                    font=dict(size=font_size, color='black'),
+                    font=dict(size=legend_font_size, color='black'),
                     margin=dict(l=60, r=40, t=40, b=60),
                     showlegend=show_legend_ui,
-                    legend=dict(x=1.05, y=1, font=dict(color='black', size=font_size))
+                    height=graph_height,
+                    legend=dict(x=1.05, y=1, font=dict(color='black', size=legend_font_size))
                 )
+                if not use_container_width:
+                    layout_update['width'] = graph_width
+                    
+                fig.update_layout(**layout_update)
 
                 x_dt_kwargs = {}
                 if not t_vals_x and dtick_x > 0:
@@ -498,8 +595,8 @@ def main():
 
                 fig.update_xaxes(
                     title_text="<b>q [nm<sup>-1</sup>]</b>",
-                    title_font=dict(size=font_size, color='black'),
-                    tickfont=dict(size=font_size, color='black'),
+                    title_font=dict(size=title_font_size, color='black'),
+                    tickfont=dict(size=tick_font_size, color='black'),
                     ticks='inside', tickcolor='black', tickwidth=2, ticklen=6,
                     showline=True, linecolor='black', linewidth=2,
                     showgrid=False, mirror=True, zeroline=False,
@@ -511,8 +608,8 @@ def main():
 
                 fig.update_yaxes(
                     title_text=title_y,
-                    title_font=dict(size=font_size, color='black'),
-                    tickfont=dict(size=font_size, color='black'),
+                    title_font=dict(size=title_font_size, color='black'),
+                    tickfont=dict(size=tick_font_size, color='black'),
                     showticklabels=show_tk_y,
                     ticks='inside' if show_tk_y else "", tickcolor='black', tickwidth=2, ticklen=6,
                     showline=True, linecolor='black', linewidth=2,
@@ -525,13 +622,13 @@ def main():
                     'displaylogo': False,
                     'modeBarButtonsToAdd': ['drawline', 'drawopenpath', 'eraseshape']
                 }
-                st.plotly_chart(fig, use_container_width=True, config=config)
+                st.plotly_chart(fig, use_container_width=use_container_width, config=config)
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("🖼️ コピー用画像を作成 (右クリックでコピー可)", use_container_width=True, key="btn_copy_t1"):
                     with st.spinner("画像を生成中..."):
                         try:
-                            img_bytes = fig.to_image(format="png", width=export_width, height=export_height, scale=3)
+                            img_bytes = fig.to_image(format="png", width=graph_width, height=graph_height, scale=3)
                             st.success("✅ 生成完了！下の画像を **右クリック →「画像をコピー」** してください。")
                             st.image(img_bytes, use_container_width=True)
                         except Exception as e:
@@ -602,6 +699,9 @@ def main():
                     df_vis = df_full # fallback
 
                 with controls_container:
+                    st.subheader("表示設定")
+                    t2_graph_color = st.color_picker("グラフの線の色", value="#000000", key=f"t2_color_{analysis_file}")
+                    st.markdown("---")
                     st.subheader("ピーク検出設定")
                     use_log_pk_t2 = st.checkbox("📈 強度を対数変換して検出 (高角側の小さいピークを推奨検出)", value=is_log_y, key=f"log_pk_t2_{analysis_file}")
                     ignore_q_min_t2 = st.number_input("極低角のピーク検出を除外 (q < 〇〇 は無視)", min_value=0.0, value=0.2, step=0.1, format="%.2f", key=f"ign_q_t2_{analysis_file}", help="ビームストップ等の不要な寄生散乱ノイズを自動検出対象から外します。")
@@ -770,27 +870,14 @@ def main():
                         col_tbl1, col_tbl2 = st.columns([1, 1])
 
                         with col_tbl1:
-                            fig_tbl = go.Figure(data=[go.Table(
-                                columnwidth=[30, 80, 80, 80, 100],
-                                header=dict(
-                                    values=["<b>No.</b>", "<b>q [nm<sup>-1</sup>]</b>", "<b>d [nm]</b>", "<b>相対比</b>", "<b>近い理論比</b>"],
-                                    fill_color='lightgrey', align='center',
-                                    font=dict(color='black', size=14), height=30
-                                ),
-                                cells=dict(
-                                    values=[
-                                        res_df['ピーク番号'],
-                                        res_df['q'].apply(lambda x: f"{x:.4f}"),
-                                        res_df['d_spacing'].apply(lambda x: f"{x:.4f}"),
-                                        res_df['Ratio'].apply(lambda x: f"{x:.3f}"),
-                                        res_df['Closest']
-                                    ],
-                                    fill_color='white', align='center',
-                                    font=dict(color='black', size=14), height=25
-                                )
-                            )])
-                            fig_tbl.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=45 + len(res_df)*30, paper_bgcolor='rgba(0,0,0,0)')
-                            st.plotly_chart(fig_tbl, use_container_width=True)
+                            res_df_fmt = pd.DataFrame({
+                                'No.': res_df['ピーク番号'],
+                                'q [nm⁻¹]': res_df['q'].apply(lambda x: f"{x:.4f}"),
+                                'd [nm]': res_df['d_spacing'].apply(lambda x: f"{x:.4f}"),
+                                '相対比': res_df['Ratio'].apply(lambda x: f"{x:.3f}"),
+                                '近い理論比': res_df['Closest']
+                            }).set_index('No.')
+                            st.table(res_df_fmt)
 
                         with col_tbl2:
                             hint_df = pd.DataFrame({
@@ -800,21 +887,10 @@ def main():
                                 'GYR': ['1', '√(4/3) (1.15)', '√(7/3) (1.53)', '√(8/3) (1.63)', '√(10/3) (1.83)', '√(11/3) (1.91)', '√(12/3) (2.00)', '√(14/3) (2.16)']
                             })
                             disp_len = max(5, len(res_df))
-                            hint_df_disp = hint_df.iloc[:disp_len]
-
-                            fig_hint = go.Figure(data=[go.Table(
-                                columnwidth=[60, 80, 80, 100],
-                                header=dict(
-                                    values=["<b>LAM</b>", "<b>CYL</b>", "<b>BCC</b>", "<b>GYR</b>"],
-                                    fill_color='#e6f2ff', align='center', font=dict(color='black', size=14), height=30
-                                ),
-                                cells=dict(
-                                    values=[hint_df_disp['LAM'], hint_df_disp['CYL'], hint_df_disp['BCC'], hint_df_disp['GYR']],
-                                    fill_color='white', align='center', font=dict(color='black', size=14), height=25
-                                )
-                            )])
-                            fig_hint.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=45 + disp_len*30, paper_bgcolor='rgba(0,0,0,0)')
-                            st.plotly_chart(fig_hint, use_container_width=True)
+                            hint_df_disp = hint_df.iloc[:disp_len].copy()
+                            hint_df_disp.index = range(1, len(hint_df_disp) + 1)
+                            hint_df_disp.index.name = "No."
+                            st.table(hint_df_disp)
 
                         morphology, score_val = detect_morphology(ratios)
                         st.markdown("""
@@ -836,9 +912,10 @@ def main():
                     st.markdown("---")
 
                     fig_peak = go.Figure()
+                    current_color = t2_graph_color
                     fig_peak.add_trace(go.Scatter(
                         x=df_vis['q_nm'], y=df_vis['I'], mode='lines', name='Data',
-                        line=dict(color='black', width=line_width)
+                        line=dict(color=current_color, width=line_width)
                     ))
 
                     if len(active_qs) > 0:
@@ -849,7 +926,7 @@ def main():
                         fig_peak.add_trace(go.Scatter(
                             x=active_qs, y=p_y,
                             mode='markers', name='Selected Peaks',
-                            marker=dict(color='black', size=14, symbol='triangle-down')
+                            marker=dict(color=current_color, size=14, symbol='triangle-down')
                         ))
 
                     t_vals_y, t_text_y = None, None
@@ -862,13 +939,18 @@ def main():
                         if ui_q_min > 0 and ui_q_max > ui_q_min:
                             t_vals_x, t_text_x = get_log_ticks(ui_q_min, ui_q_max)
 
-                    fig_peak.update_layout(
+                    layout_update_pk = dict(
                         plot_bgcolor='white', paper_bgcolor='rgba(0,0,0,0)',
-                        font=dict(size=font_size, color='black'),
+                        font=dict(size=legend_font_size, color='black'),
                         margin=dict(l=60, r=40, t=40, b=60),
                         showlegend=show_legend_ui,
-                        legend=dict(font=dict(color='black', size=font_size))
+                        height=graph_height,
+                        legend=dict(font=dict(color='black', size=legend_font_size))
                     )
+                    if not use_container_width:
+                        layout_update_pk['width'] = graph_width
+                        
+                    fig_peak.update_layout(**layout_update_pk)
 
                     x_dt_kwargs_pk = {}
                     if not t_vals_x and dtick_x > 0:
@@ -884,8 +966,8 @@ def main():
 
                     fig_peak.update_xaxes(
                         title_text="<b>q [nm<sup>-1</sup>]</b>",
-                        title_font=dict(size=font_size, color='black'),
-                        tickfont=dict(size=font_size, color='black'),
+                        title_font=dict(size=title_font_size, color='black'),
+                        tickfont=dict(size=tick_font_size, color='black'),
                         ticks='inside', tickcolor='black', tickwidth=2, ticklen=6,
                         showline=True, linecolor='black', linewidth=2,
                         showgrid=False, mirror=True, zeroline=False,
@@ -897,8 +979,8 @@ def main():
 
                     fig_peak.update_yaxes(
                         title_text=title_y,
-                        title_font=dict(size=font_size, color='black'),
-                        tickfont=dict(size=font_size, color='black'),
+                        title_font=dict(size=title_font_size, color='black'),
+                        tickfont=dict(size=tick_font_size, color='black'),
                         showticklabels=show_tk_y,
                         ticks='inside' if show_tk_y else "", tickcolor='black', tickwidth=2, ticklen=6,
                         showline=True, linecolor='black', linewidth=2,
@@ -911,13 +993,13 @@ def main():
                         'displaylogo': False,
                         'modeBarButtonsToAdd': ['drawline', 'drawopenpath', 'eraseshape']
                     }
-                    st.plotly_chart(fig_peak, use_container_width=True, config=config_pk)
+                    st.plotly_chart(fig_peak, use_container_width=use_container_width, config=config_pk)
 
                     st.markdown("<br>", unsafe_allow_html=True)
                     if st.button("🖼️ コピー用画像を作成 (右クリックでコピー可)", use_container_width=True, key="btn_copy_t2"):
                         with st.spinner("画像を生成中..."):
                             try:
-                                img_bytes = fig_peak.to_image(format="png", width=export_width, height=export_height, scale=3)
+                                img_bytes = fig_peak.to_image(format="png", width=graph_width, height=graph_height, scale=3)
                                 st.success("✅ 生成完了！下の画像を **右クリック →「画像をコピー」** してください。")
                                 st.image(img_bytes, use_container_width=True)
                             except Exception as e:
