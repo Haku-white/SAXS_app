@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks, savgol_filter
 import re
 import pickle
 
@@ -81,12 +81,12 @@ def detect_morphology(ratios):
     if len(eval_ratios) < 2:
         return "Disorder", 0
 
-    tolerance = 0.05
+    tolerance = 0.06
     models = {
-        "ラメラ (Lamellar)": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-        "ヘキサゴナルシリンダー (Cylinder)": [np.sqrt(n) for n in [1, 3, 4, 7, 9, 12, 13, 16, 19, 21, 25, 27, 28, 31, 36, 37, 39, 43, 48, 49, 52, 57, 61, 63, 64, 67, 73, 75, 76, 79, 81, 84, 91, 93, 97, 100]],
-        "BCC球 (Spheres)": [np.sqrt(n) for n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 56, 57, 58, 59, 61, 62, 64]],
-        "ジャイロイド (Gyroid)": [np.sqrt(n/6) for n in [6, 8, 14, 16, 20, 22, 24, 26, 30, 32, 38, 40, 42, 46, 48, 50, 54, 56, 62, 64, 66, 68, 70, 72, 74, 78, 80, 86, 88, 94, 96, 98, 102, 104, 110, 112, 114, 116, 118, 120, 126, 128, 134, 136, 142, 144, 150]]
+        "ラメラ (LAM)": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        "ヘキサゴナルシリンダー (CYL)": [np.sqrt(n) for n in [1, 3, 4, 7, 9, 12, 13, 16, 19, 21, 25, 27, 28, 31, 36, 37, 39, 43, 48, 49, 52, 57, 61, 63, 64, 67, 73, 75, 76, 79, 81, 84, 91, 93, 97, 100]],
+        "BCC球 (BCC)": [np.sqrt(n) for n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 41, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 53, 54, 56, 57, 58, 59, 61, 62, 64]],
+        "ジャイロイド (GYR)": [np.sqrt(n/6) for n in [6, 8, 14, 16, 20, 22, 24, 26, 30, 32, 38, 40, 42, 46, 48, 50, 54, 56, 62, 64, 66, 68, 70, 72, 74, 78, 80, 86, 88, 94, 96, 98, 102, 104, 110, 112, 114, 116, 118, 120, 126, 128, 134, 136, 142, 144, 150]]
     }
 
     best_match = "Disorder"
@@ -98,9 +98,11 @@ def detect_morphology(ratios):
                 score += 1
 
         match_ratio = score / len(eval_ratios)
-        if match_ratio >= 0.5 and score > max_score:
-            max_score = score
-            best_match = name
+        if match_ratio >= 0.4 and score >= 2:
+            eval_score = score + match_ratio * 1.5
+            if eval_score > max_score:
+                max_score = eval_score
+                best_match = name
 
     return best_match, max_score
 
@@ -329,12 +331,14 @@ def main():
             st.sidebar.warning("※ 最小値が最大値を超えています")
             ui_q_max = ui_q_min + 0.1
 
+        data_cut_q = st.sidebar.number_input("データの実体を削除 (q < 〇〇 以下)", min_value=0.0, value=0.0, step=0.010, format="%.4f", help="軸の範囲は変えずに、指定値以下の不要なデータポイントそのものをプロットや解析対象から除外（切り落とし）します。")
+
         st.sidebar.markdown("---")
         st.sidebar.header("グラフ共通設定")
         normalize_data = st.sidebar.checkbox("各グラフの最大強度を 1.0 に規格化", value=True, help="データ全体での最大強度を基準に揃えます。(Tab 1・2共通)")
         plot_type = st.sidebar.radio("描画プロット", ["Semi-log (Y軸対数)", "Log-log (両対数)", "Linear (線形)"])
         show_legend_ui = st.sidebar.checkbox("グラフの凡例を表示する", value=True)
-        
+
         st.sidebar.markdown("---")
         st.sidebar.header("フォント設定")
         col_f1, col_f2 = st.sidebar.columns(2)
@@ -372,7 +376,7 @@ def main():
 
         is_log_y = "log" in plot_type.lower()
         is_log_x = "log-log" in plot_type.lower()
-        title_y = "<b>log (Intensity)</b>" if is_log_y else "<b>Intensity [a.u.]</b>"
+        title_y = "<b>ln(<i>I</i>) / a.u.</b>" if is_log_y else "<b><i>I</i> / a.u.</b>"
         show_tk_y = not is_log_y
 
         x_domain_log = [np.log10(max(1e-5, ui_q_min)), np.log10(max(1e-4, ui_q_max))] if is_log_x else [ui_q_min, ui_q_max]
@@ -381,6 +385,10 @@ def main():
         processed_data = {}
         for name, item in data_dict.items():
             df = item['df'].copy()
+
+            if data_cut_q > 0:
+                df = df[df['q_nm'] >= data_cut_q]
+
             if subtract_blank and blank_df is not None and name != blank_filename:
                 blank_I_interp = np.interp(df['q_nm'], blank_df['q_nm'], blank_df['I'])
                 df['I'] = df['I'] - blank_I_interp
@@ -444,7 +452,7 @@ def main():
 
                 if 'ordered_files_saxs' not in st.session_state or set(st.session_state.ordered_files_saxs) != set(file_names):
                     st.session_state.ordered_files_saxs = file_names
-                
+
                 st.caption("ファイルの順番を「▲」「▼」で入れ替えられます。")
 
                 modifiers = {}
@@ -501,7 +509,7 @@ def main():
 
                     x_offset = 0.0
                     my_y = manual_y_offsets.get(name, 0.0)
-                    
+
                     # グラフ上で、リストの上にあるものほど上に表示されるように順序を反転
                     # リストの先頭 (i=0) が最大の Yオフセット を持つように計算
                     len_selected = len(selected_files)
@@ -578,7 +586,7 @@ def main():
                 )
                 if not use_container_width:
                     layout_update['width'] = graph_width
-                    
+
                 fig.update_layout(**layout_update)
 
                 x_dt_kwargs = {}
@@ -594,7 +602,7 @@ def main():
                     y_dt_kwargs['tickmode'] = 'linear'
 
                 fig.update_xaxes(
-                    title_text="<b>q [nm<sup>-1</sup>]</b>",
+                    title_text="<b><i>q</i> [nm<sup>-1</sup>]</b>",
                     title_font=dict(size=title_font_size, color='black'),
                     tickfont=dict(size=tick_font_size, color='black'),
                     ticks='inside', tickcolor='black', tickwidth=2, ticklen=6,
@@ -704,9 +712,25 @@ def main():
                     st.markdown("---")
                     st.subheader("ピーク検出設定")
                     use_log_pk_t2 = st.checkbox("📈 強度を対数変換して検出 (高角側の小さいピークを推奨検出)", value=is_log_y, key=f"log_pk_t2_{analysis_file}")
-                    ignore_q_min_t2 = st.number_input("極低角のピーク検出を除外 (q < 〇〇 は無視)", min_value=0.0, value=0.2, step=0.1, format="%.2f", key=f"ign_q_t2_{analysis_file}", help="ビームストップ等の不要な寄生散乱ノイズを自動検出対象から外します。")
+                    do_smooth = st.checkbox("🧹 スムージング処理 (高角ノイズの過剰検出を防ぐ)", value=True, key=f"smooth_t2_{analysis_file}")
+                    if do_smooth:
+                        smooth_window = st.slider("スムージングの強さ (データ点数)", 5, 151, 21, step=2, key=f"smooth_win_{analysis_file}")
+                    else:
+                        smooth_window = 5
+
+                    ignore_q_min_t2 = st.number_input("極低角のピーク検出を除外 (q < 〇〇 は無視)", min_value=0.0, value=0.05, step=0.05, format="%.2f", key=f"ign_q_t2_{analysis_file}", help="ビームストップ等の不要な寄生散乱ノイズを自動検出対象から外します。")
 
                     df_tmp = df_vis['I'].dropna()
+
+                    if not df_tmp.empty and do_smooth:
+                        wl = min(smooth_window, len(df_tmp) - (1 if len(df_tmp)%2 == 0 else 0))
+                        if wl >= 5:
+                            try:
+                                df_tmp = pd.Series(savgol_filter(df_tmp.values, window_length=wl, polyorder=2), index=df_tmp.index)
+                                df_tmp = df_tmp.clip(lower=1e-12)
+                            except Exception:
+                                pass
+
                     if use_log_pk_t2 and not df_tmp.empty:
                         y_eval_t2 = np.log10(df_tmp.clip(lower=1e-12))
                         max_I_t2 = float(y_eval_t2.max() - y_eval_t2.min())
@@ -723,7 +747,7 @@ def main():
                         min_H_t2 = 0.0
                         max_H_t2 = 1.0
 
-                    max_prom_t2 = 1.0 if use_log_pk_t2 else float(max_I_t2) * 0.5
+                    max_prom_t2 = max(1.0, float(max_I_t2) * 0.5) if use_log_pk_t2 else float(max_I_t2) * 0.5
                     prom_fmt_t2 = "%.3f" if use_log_pk_t2 else "%.2e"
 
                     prominence = st.slider("プロミネンス", 0.0, max_prom_t2, max_prom_t2 * 0.02, format=prom_fmt_t2, key=f"t2_prom_{analysis_file}")
@@ -775,9 +799,9 @@ def main():
                     peaks = peaks[valid_mask_t2]
                     proms_t2 = props['prominences'][valid_mask_t2]
 
-                    # 目立つピーク上位8つまでに自動制限 (大量のノイズ検出を防ぐ)
-                    if len(peaks) > 8:
-                        top_idx = np.argsort(proms_t2)[-8:]
+                    # 目立つピーク上位15つまでに自動制限 (大量のノイズ検出を防ぐ)
+                    if len(peaks) > 15:
+                        top_idx = np.argsort(proms_t2)[-15:]
                         peaks = np.sort(peaks[top_idx])
 
                     # Ensure alignment of indices with full df_vis if it has custom index
@@ -808,7 +832,7 @@ def main():
 
                         if len(active_qs) > 0:
                             saved_q1_key = f"q1_sel_{analysis_file}"
-                            
+
                             if saved_q1_key in st.session_state and st.session_state[saved_q1_key] in active_qs:
                                 best_idx = list(active_qs).index(st.session_state[saved_q1_key])
                             else:
@@ -827,15 +851,15 @@ def main():
                                         best_idx = idx
 
                             st.markdown("---")
-                            
+
                             def update_q1_sel():
                                 st.session_state[saved_q1_key] = st.session_state[f"ui_{saved_q1_key}"]
 
                             q1_ref = st.selectbox(
-                                "⭐ 相対比の基準となる第1ピーク (q₁)", 
-                                active_qs, 
-                                index=best_idx, 
-                                format_func=lambda x: f"q = {x:.4f} nm⁻¹", 
+                                "⭐ 相対比の基準となる第1ピーク (q₁)",
+                                active_qs,
+                                index=best_idx,
+                                format_func=lambda x: f"q = {x:.4f} nm⁻¹",
                                 key=f"ui_{saved_q1_key}",
                                 on_change=update_q1_sel,
                                 help="ピークが追加・削除されても選択した基準ピークを維持します。最初は最も高スコアとなるピークを自動選択します。"
@@ -867,9 +891,20 @@ def main():
                         })
 
                         st.subheader("ピーク解析データ & モルフォロジー推定")
+
+                        THEO_MODELS = {
+                            "ラメラ (LAM)": [ (1, '1'), (2, '2'), (3, '3'), (4, '4'), (5, '5'), (6, '6'), (7, '7'), (8, '8') ],
+                            "ヘキサゴナルシリンダー (CYL)": [ (1, '1'), (np.sqrt(3), '√3'), (np.sqrt(4), '√4 (2.00)'), (np.sqrt(7), '√7'), (np.sqrt(9), '√9 (3.00)'), (np.sqrt(12), '√12'), (np.sqrt(13), '√13'), (np.sqrt(16), '√16 (4.00)') ],
+                            "BCC球 (BCC)": [ (1, '1'), (np.sqrt(2), '√2'), (np.sqrt(3), '√3'), (np.sqrt(4), '√4 (2.00)'), (np.sqrt(5), '√5'), (np.sqrt(6), '√6'), (np.sqrt(7), '√7'), (np.sqrt(8), '√8') ],
+                            "ジャイロイド (GYR)": [ (1, '1'), (np.sqrt(4/3), '√(4/3)'), (np.sqrt(7/3), '√(7/3)'), (np.sqrt(8/3), '√(8/3)'), (np.sqrt(10/3), '√(10/3)'), (np.sqrt(11/3), '√(11/3)'), (np.sqrt(12/3), '√(12/3) (2.00)'), (np.sqrt(14/3), '√(14/3)') ]
+                        }
+
+                        expected_morph = st.selectbox("🧩 手動確認: 予想されるモルフォロジーを選択して理論ピーク位置を表示", ["指定なし"] + list(THEO_MODELS.keys()), index=0, key=f"expected_morph_{analysis_file}")
+
                         col_tbl1, col_tbl2 = st.columns([1, 1])
 
                         with col_tbl1:
+                            st.markdown("**【 検出されたピーク 】**")
                             res_df_fmt = pd.DataFrame({
                                 'No.': res_df['ピーク番号'],
                                 'q [nm⁻¹]': res_df['q'].apply(lambda x: f"{x:.4f}"),
@@ -877,20 +912,36 @@ def main():
                                 '相対比': res_df['Ratio'].apply(lambda x: f"{x:.3f}"),
                                 '近い理論比': res_df['Closest']
                             }).set_index('No.')
-                            st.table(res_df_fmt)
+                            st.markdown(res_df_fmt.to_markdown())
 
                         with col_tbl2:
-                            hint_df = pd.DataFrame({
-                                'LAM': ['1', '2', '3', '4', '5', '6', '7', '8'],
-                                'CYL': ['1', '√3 (1.73)', '√4 (2.00)', '√7 (2.65)', '√9 (3.00)', '√12 (3.46)', '√13 (3.61)', '√16 (4.00)'],
-                                'BCC': ['1', '√2 (1.41)', '√3 (1.73)', '√4 (2.00)', '√5 (2.24)', '√6 (2.45)', '√7 (2.65)', '√8 (2.83)'],
-                                'GYR': ['1', '√(4/3) (1.15)', '√(7/3) (1.53)', '√(8/3) (1.63)', '√(10/3) (1.83)', '√(11/3) (1.91)', '√(12/3) (2.00)', '√(14/3) (2.16)']
-                            })
-                            disp_len = max(5, len(res_df))
-                            hint_df_disp = hint_df.iloc[:disp_len].copy()
-                            hint_df_disp.index = range(1, len(hint_df_disp) + 1)
-                            hint_df_disp.index.name = "No."
-                            st.table(hint_df_disp)
+                            if expected_morph != "指定なし":
+                                st.markdown(f"**【 {expected_morph} の理論ピーク 】** (基準: <i>q</i>₁ = {q1:.4f} nm⁻¹)", unsafe_allow_html=True)
+                                theo_list = THEO_MODELS[expected_morph]
+                                theo_qs = [r * q1 for r, lbl in theo_list]
+                                theo_lbls = [lbl for r, lbl in theo_list]
+
+                                theo_df = pd.DataFrame({
+                                    '理論比': theo_lbls,
+                                    '理論 q [nm⁻¹]': [f"{tq:.4f}" for tq in theo_qs],
+                                    '理論 d [nm]': [f"{(2.0 * np.pi / tq):.4f}" if tq > 0 else "-" for tq in theo_qs]
+                                })
+                                theo_df.index = range(1, len(theo_df) + 1)
+                                theo_df.index.name = "No."
+                                st.markdown(theo_df.to_markdown())
+                            else:
+                                st.markdown("**【 理論比ヒント 】**")
+                                hint_df = pd.DataFrame({
+                                    'LAM': ['1', '2', '3', '4', '5', '6', '7', '8'],
+                                    'CYL': ['1', '√3 (1.73)', '√4 (2.00)', '√7 (2.65)', '√9 (3.00)', '√12 (3.46)', '√13 (3.61)', '√16 (4.00)'],
+                                    'BCC': ['1', '√2 (1.41)', '√3 (1.73)', '√4 (2.00)', '√5 (2.24)', '√6 (2.45)', '√7 (2.65)', '√8 (2.83)'],
+                                    'GYR': ['1', '√(4/3) (1.15)', '√(7/3) (1.53)', '√(8/3) (1.63)', '√(10/3) (1.83)', '√(11/3) (1.91)', '√(12/3) (2.00)', '√(14/3) (2.16)']
+                                })
+                                disp_len = max(5, len(res_df))
+                                hint_df_disp = hint_df.iloc[:disp_len].copy()
+                                hint_df_disp.index = range(1, len(hint_df_disp) + 1)
+                                hint_df_disp.index.name = "No."
+                                st.markdown(hint_df_disp.to_markdown())
 
                         morphology, score_val = detect_morphology(ratios)
                         st.markdown("""
@@ -929,6 +980,19 @@ def main():
                             marker=dict(color=current_color, size=14, symbol='triangle-down')
                         ))
 
+                        if expected_morph != "指定なし":
+                            theo_list = THEO_MODELS[expected_morph]
+                            theo_qs = np.array([r * q1 for r, lbl in theo_list])
+                            theo_qs_valid = theo_qs[(theo_qs >= ui_q_min) & (theo_qs <= ui_q_max)]
+                            if len(theo_qs_valid) > 0:
+                                theo_Is = np.interp(theo_qs_valid, df_full['q_nm'], df_full['I'])
+                                theo_p_y = theo_Is * p_offset if is_log_y else theo_Is + p_offset
+                                fig_peak.add_trace(go.Scatter(
+                                    x=theo_qs_valid, y=theo_p_y,
+                                    mode='markers', name=f'{expected_morph} (Theory)',
+                                    marker=dict(color='rgba(0,0,0,0)', size=14, symbol='triangle-down', line=dict(color='red', width=2))
+                                ))
+
                     t_vals_y, t_text_y = None, None
                     t_vals_x, t_text_x = None, None
 
@@ -949,7 +1013,7 @@ def main():
                     )
                     if not use_container_width:
                         layout_update_pk['width'] = graph_width
-                        
+
                     fig_peak.update_layout(**layout_update_pk)
 
                     x_dt_kwargs_pk = {}
@@ -965,7 +1029,7 @@ def main():
                         y_dt_kwargs_pk['tickmode'] = 'linear'
 
                     fig_peak.update_xaxes(
-                        title_text="<b>q [nm<sup>-1</sup>]</b>",
+                        title_text="<b><i>q</i> [nm<sup>-1</sup>]</b>",
                         title_font=dict(size=title_font_size, color='black'),
                         tickfont=dict(size=tick_font_size, color='black'),
                         ticks='inside', tickcolor='black', tickwidth=2, ticklen=6,
