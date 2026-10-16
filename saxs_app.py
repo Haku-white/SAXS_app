@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 from scipy.signal import find_peaks, savgol_filter
 import re
 import pickle
+from style_presets import init_default, render_preset_ui
 
 # -------------------------
 # Utility Functions
@@ -250,6 +251,12 @@ def main():
         for f in uploaded_files:
             original_name = f.name
             display_name = clean_filename(original_name)
+            # 日時部分を除いた結果、同名になったファイルが上書きされないよう連番を付ける
+            if display_name in data_dict:
+                n = 2
+                while f"{display_name}_{n}" in data_dict:
+                    n += 1
+                display_name = f"{display_name}_{n}"
             current_wv = wavelength if 'wavelength' in locals() else 0.15418
             df = load_data(f, q_unit_input, current_wv)
             if df is not None:
@@ -285,7 +292,7 @@ def main():
         st.sidebar.header("バックグラウンド(Blank)設定")
         if blank_filename:
             st.sidebar.success(f"Blankファイルを自動検知しました: {blank_filename}")
-            subtract_blank = st.sidebar.checkbox("Blankを減算する", value=False)
+            subtract_blank = st.sidebar.checkbox("Blankを減算する", value=False, key="ui_subtract_blank")
         else:
             st.sidebar.info("Blankファイル (名前に 'blank' を含むファイル) は見つかりませんでした。")
             subtract_blank = False
@@ -331,52 +338,81 @@ def main():
             st.sidebar.warning("※ 最小値が最大値を超えています")
             ui_q_max = ui_q_min + 0.1
 
-        data_cut_q = st.sidebar.number_input("データの実体を削除 (q < 〇〇 以下)", min_value=0.0, value=0.0, step=0.010, format="%.4f", help="軸の範囲は変えずに、指定値以下の不要なデータポイントそのものをプロットや解析対象から除外（切り落とし）します。")
+        data_cut_q = st.sidebar.number_input("データの実体を削除 (q < 〇〇 以下)", min_value=0.0, value=0.0, step=0.010, format="%.4f", key="ui_data_cut_q", help="軸の範囲は変えずに、指定値以下の不要なデータポイントそのものをプロットや解析対象から除外（切り落とし）します。")
+
+        # スタイルプリセットの対象となる設定の初期値
+        style_defaults = {
+            "ui_normalize": True,
+            "ui_plot_type": "Semi-log (Y軸対数)",
+            "ui_show_legend": True,
+            "ui_title_font": 24,
+            "ui_tick_font": 18,
+            "ui_legend_font": 16,
+            "ui_line_width": 2.0,
+            "ui_dtick_x": 0.0,
+            "ui_dtick_y": 0.0,
+            "ui_use_container_width": True,
+            "ui_graph_width": 800,
+            "ui_graph_height": 600,
+            "ui_img_format": "svg",
+            "ui_export_width": 1200,
+            "ui_export_height": 800,
+        }
+        for k, v in style_defaults.items():
+            init_default(k, v)
 
         st.sidebar.markdown("---")
         st.sidebar.header("グラフ共通設定")
-        normalize_data = st.sidebar.checkbox("各グラフの最大強度を 1.0 に規格化", value=True, help="データ全体での最大強度を基準に揃えます。(Tab 1・2共通)")
-        plot_type = st.sidebar.radio("描画プロット", ["Semi-log (Y軸対数)", "Log-log (両対数)", "Linear (線形)"])
-        show_legend_ui = st.sidebar.checkbox("グラフの凡例を表示する", value=True)
+        normalize_data = st.sidebar.checkbox("各グラフの最大強度を 1.0 に規格化", key="ui_normalize", help="データ全体での最大強度を基準に揃えます。(Tab 1・2共通)")
+        plot_type = st.sidebar.radio("描画プロット", ["Semi-log (Y軸対数)", "Log-log (両対数)", "Linear (線形)"], key="ui_plot_type")
+        show_legend_ui = st.sidebar.checkbox("グラフの凡例を表示する", key="ui_show_legend")
 
         st.sidebar.markdown("---")
         st.sidebar.header("フォント設定")
         col_f1, col_f2 = st.sidebar.columns(2)
         with col_f1:
-            title_font_size = st.number_input("軸タイトル", min_value=10, max_value=50, value=24, step=1)
+            title_font_size = st.number_input("軸タイトル", min_value=10, max_value=50, step=1, key="ui_title_font")
         with col_f2:
-            tick_font_size = st.number_input("軸目盛り(数値)", min_value=10, max_value=50, value=18, step=1)
-        legend_font_size = st.number_input("凡例・その他", min_value=10, max_value=50, value=16, step=1)
+            tick_font_size = st.number_input("軸目盛り(数値)", min_value=10, max_value=50, step=1, key="ui_tick_font")
+        legend_font_size = st.sidebar.number_input("凡例・その他", min_value=10, max_value=50, step=1, key="ui_legend_font")
 
         st.sidebar.markdown("---")
-        line_width = st.sidebar.slider("線の太さ", 1.0, 5.0, 2.0)
+        line_width = st.sidebar.slider("線の太さ", 1.0, 5.0, key="ui_line_width")
 
         st.sidebar.markdown("---")
         st.sidebar.header("軸の目盛り間隔 (0で自動)")
         col_tx, col_ty = st.sidebar.columns(2)
         with col_tx:
-            dtick_x = st.number_input("X軸", value=0.0, step=1.0, format="%.2f")
+            dtick_x = st.number_input("X軸", step=1.0, format="%.2f", key="ui_dtick_x")
         with col_ty:
-            dtick_y = st.number_input("Y軸 (線形のみ)", value=0.0, step=0.1, format="%.2f")
+            dtick_y = st.number_input("Y軸 (線形のみ)", step=0.1, format="%.2f", key="ui_dtick_y")
 
         st.sidebar.markdown("---")
         st.sidebar.header("画面上のグラフサイズ")
-        use_container_width = st.sidebar.checkbox("幅を画面に合わせる (自動リサイズ)", value=True, help="オフにすると指定した幅と高さ（縦横比）で固定表示されます。")
+        use_container_width = st.sidebar.checkbox("幅を画面に合わせる (自動リサイズ)", key="ui_use_container_width", help="オフにすると指定した幅と高さ（縦横比）で固定表示されます。")
         col_w, col_h = st.sidebar.columns(2)
         with col_w:
-            graph_width = st.number_input("グラフ幅 (px)", value=800, step=50, disabled=use_container_width)
+            graph_width = st.number_input("グラフ幅 (px)", step=50, disabled=use_container_width, key="ui_graph_width")
         with col_h:
-            graph_height = st.number_input("グラフ高さ (px)", value=600, step=50)
+            graph_height = st.number_input("グラフ高さ (px)", step=50, key="ui_graph_height")
 
         st.sidebar.markdown("---")
         st.sidebar.header("画像出力・保存設定")
-        img_format = st.sidebar.selectbox("ダウンロード画像の形式", ["svg", "png", "jpeg", "pdf"], index=0)
-        export_width = st.sidebar.number_input("出力画像の幅 (px)", value=1200, step=100)
-        export_height = st.sidebar.number_input("出力画像の高さ (px)", value=800, step=100)
+        img_format = st.sidebar.selectbox("ダウンロード画像の形式", ["svg", "png", "jpeg", "pdf"], key="ui_img_format")
+        export_width = st.sidebar.number_input("出力画像の幅 (px)", step=100, key="ui_export_width")
+        export_height = st.sidebar.number_input("出力画像の高さ (px)", step=100, key="ui_export_height")
+
+        st.sidebar.markdown("---")
+        render_preset_ui(
+            "saxs",
+            style_keys=list(style_defaults.keys()),
+            defaults=style_defaults,
+            color_keys=[f"color_{n}" for n in data_dict.keys()] + [f"t2_color_{n}" for n in data_dict.keys()],
+        )
 
         is_log_y = "log" in plot_type.lower()
         is_log_x = "log-log" in plot_type.lower()
-        title_y = "<b>ln(<i>I</i>) / a.u.</b>" if is_log_y else "<b><i>I</i> / a.u.</b>"
+        title_y = "<b><i>I</i> / a.u.</b>"
         show_tk_y = not is_log_y
 
         x_domain_log = [np.log10(max(1e-5, ui_q_min)), np.log10(max(1e-4, ui_q_max))] if is_log_x else [ui_q_min, ui_q_max]
@@ -417,7 +453,7 @@ def main():
 
             with col_left:
                 st.subheader("波形のオフセット (ずらし表示)")
-                stack_y = st.number_input("自動Y軸シフト", value=0.0, step=2.0, help="波形を上下にずらします。対数の場合は 10^値 の乗算になります。")
+                stack_y = st.number_input("自動Y軸シフト", value=0.0, step=2.0, key="ui_stack_y", help="波形を上下にずらします。対数の場合は 10^値 の乗算になります。")
 
                 st.markdown("---")
                 st.subheader("全体ピーク検出設定")
@@ -455,6 +491,10 @@ def main():
 
                 st.caption("ファイルの順番を「▲」「▼」で入れ替えられます。")
 
+                if st.button("⚫ 全ての線の色を黒にする", use_container_width=True, key="btn_all_black"):
+                    for name in st.session_state.ordered_files_saxs:
+                        st.session_state[f"color_{name}"] = "#000000"
+
                 modifiers = {}
                 manual_y_offsets = {}
                 peak_flags = {}
@@ -488,15 +528,18 @@ def main():
                         display_names[name] = custom_n
                         col_m, col_y, col_p, col_c = st.columns([3, 3, 3, 2])
                         with col_m:
-                            modifiers[name] = st.number_input("倍率", value=1.0, step=0.5, format="%.2f", key=f"mult_{name}")
+                            init_default(f"mult_{name}", 1.0)
+                            modifiers[name] = st.number_input("倍率", step=0.5, format="%.2f", key=f"mult_{name}")
                         with col_y:
                             manual_y_offsets[name] = st.number_input("個別Yシフト", value=0.0, step=0.5, format="%.2f", key=f"my_y_{name}")
                         with col_p:
                             st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
-                            peak_flags[name] = st.checkbox("ピーク", value=False, key=f"pkf_{name}")
+                            init_default(f"pkf_{name}", False)
+                            peak_flags[name] = st.checkbox("ピーク", key=f"pkf_{name}")
                         with col_c:
                             st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
-                            custom_colors[name] = st.color_picker("色", value=default_c, key=f"color_{name}", label_visibility="collapsed")
+                            init_default(f"color_{name}", default_c)
+                            custom_colors[name] = st.color_picker("色", key=f"color_{name}", label_visibility="collapsed")
 
             with col_right:
                 fig = go.Figure()
@@ -636,7 +679,7 @@ def main():
                 if st.button("🖼️ コピー用画像を作成 (右クリックでコピー可)", use_container_width=True, key="btn_copy_t1"):
                     with st.spinner("画像を生成中..."):
                         try:
-                            img_bytes = fig.to_image(format="png", width=graph_width, height=graph_height, scale=3)
+                            img_bytes = fig.to_image(format="png", width=export_width, height=export_height, scale=3)
                             st.success("✅ 生成完了！下の画像を **右クリック →「画像をコピー」** してください。")
                             st.image(img_bytes, use_container_width=True)
                         except Exception as e:
@@ -708,7 +751,8 @@ def main():
 
                 with controls_container:
                     st.subheader("表示設定")
-                    t2_graph_color = st.color_picker("グラフの線の色", value="#000000", key=f"t2_color_{analysis_file}")
+                    init_default(f"t2_color_{analysis_file}", "#000000")
+                    t2_graph_color = st.color_picker("グラフの線の色", key=f"t2_color_{analysis_file}")
                     st.markdown("---")
                     st.subheader("ピーク検出設定")
                     use_log_pk_t2 = st.checkbox("📈 強度を対数変換して検出 (高角側の小さいピークを推奨検出)", value=is_log_y, key=f"log_pk_t2_{analysis_file}")
@@ -1063,7 +1107,7 @@ def main():
                     if st.button("🖼️ コピー用画像を作成 (右クリックでコピー可)", use_container_width=True, key="btn_copy_t2"):
                         with st.spinner("画像を生成中..."):
                             try:
-                                img_bytes = fig_peak.to_image(format="png", width=graph_width, height=graph_height, scale=3)
+                                img_bytes = fig_peak.to_image(format="png", width=export_width, height=export_height, scale=3)
                                 st.success("✅ 生成完了！下の画像を **右クリック →「画像をコピー」** してください。")
                                 st.image(img_bytes, use_container_width=True)
                             except Exception as e:
@@ -1085,8 +1129,7 @@ def main():
                              and not k.startswith("up_")
                              and not k.startswith("down_")
                              and not k.startswith("btn_")
-                             and not k.startswith("pkf_")
-                             and not k.startswith("mult_")
+                             and not k.startswith("preset_")
                              and not k.startswith("del_mq_")
                              and not k.startswith("edit_mq_")}
 
